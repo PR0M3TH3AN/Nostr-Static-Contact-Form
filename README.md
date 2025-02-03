@@ -70,4 +70,3 @@ This project is open source and available under the [MIT License](LICENSE).
 
 - [Nostr Protocol Documentation](https://github.com/nostr-protocol/nostr)
 - [Nostr Tools GitHub Repository](https://github.com/fiatjaf/nostr-tools)
-```
