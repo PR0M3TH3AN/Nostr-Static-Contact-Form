@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Contact Form</title>
+    <style>
+      /* Basic reset and typography */
+      body {
+        margin: 0;
+        padding: 20px;
+        font-family: system-ui, -apple-system, sans-serif;
+        background-color: #f4f4f4;
+        color: #333;
+      }
+      /* Centered container */
+      .form-container {
+        max-width: 600px;
+        margin: auto;
+        background: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      h2 {
+        margin-top: 0;
+        font-size: 1.5em;
+        text-align: center;
+      }
+      label {
+        display: block;
+        margin-top: 15px;
+        font-weight: bold;
+      }
+      input[type="text"],
+      input[type="email"],
+      textarea {
+        width: 100%;
+        padding: 10px;
+        margin-top: 5px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+      }
+      textarea {
+        resize: vertical;
+        min-height: 100px;
+      }
+      button {
+        display: block;
+        width: 100%;
+        padding: 10px;
+        margin-top: 20px;
+        background-color: #3b82f6;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        font-size: 1em;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #2563eb;
+      }
+      #result {
+        text-align: center;
+        margin-top: 20px;
+        font-size: 1.2em;
+        font-weight: bold;
+      }
+    </style>
+    <!-- Load nostr‑tools v2.10.4 -->
+    <script src="https://cdn.jsdelivr.net/npm/nostr-tools@2.10.4/lib/nostr.bundle.min.js"></script>
+  </head>
+  <body>
+    <div class="form-container">
+      <h2>Contact Us</h2>
+      <form id="contact-form">
+        <label for="name">Name</label>
+        <input type="text" id="name" placeholder="Your name" required />
+        <label for="email">Email</label>
+        <input type="email" id="email" placeholder="Your email" required />
+        <label for="message">Message</label>
+        <textarea id="message" placeholder="Your message" required></textarea>
+        <button type="submit">Send Message</button>
+      </form>
+      <div id="result"></div>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const form = document.getElementById("contact-form");
+        const resultDiv = document.getElementById("result");
+
+        // Set the admin recipient NPUB here.
+        const recipientNpub = "npubYOURADMINNPUBHERE"; // Replace with your NPUB
+
+        // Relay URLs for publishing events.
+        const RELAYS = [
+          "wss://relay.snort.social",
+          "wss://relay.damus.io",
+          "wss://relay.primal.net"
+        ];
+        const pool = new window.NostrTools.SimplePool();
+
+        form.addEventListener("submit", async (ev) => {
+          ev.preventDefault();
+          resultDiv.textContent = "";
+          // Collect form values.
+          const name = document.getElementById("name").value.trim();
+          const email = document.getElementById("email").value.trim();
+          const message = document.getElementById("message").value.trim();
+
+          // Build the Markdown message.
+          const content = `
+# Contact Form Submission
+
+**Name:** ${name}
+**Email:** ${email}
+**Message:**
+${message}
+          `.trim();
+
+          try {
+            // Decode the recipient NPUB to get its public key.
+            const decoded = window.NostrTools.nip19.decode(recipientNpub);
+            if (decoded.type !== "npub") {
+              throw new Error("Invalid recipient NPUB");
+            }
+            const targetPubHex = decoded.data;
+
+            // Generate an ephemeral key pair.
+            const ephemeralPriv = window.NostrTools.generateSecretKey();
+            const ephemeralPubHex = window.NostrTools.getPublicKey(ephemeralPriv);
+
+            // Encrypt the content using NIP-04.
+            const ciphertext = await window.NostrTools.nip04.encrypt(ephemeralPriv, targetPubHex, content);
+
+            // Build the event template (kind 4 for DMs).
+            const now = Math.floor(Date.now() / 1000);
+            const eventTemplate = {
+              kind: 4,
+              created_at: now,
+              tags: [["p", targetPubHex]],
+              content: ciphertext,
+            };
+
+            // Finalize the event (this computes the event ID and signature).
+            const event = window.NostrTools.finalizeEvent(eventTemplate, ephemeralPriv);
+
+            // Publish the event to the relays.
+            await Promise.any(pool.publish(RELAYS, event));
+
+            resultDiv.textContent = "Success: Your message has been sent.";
+            form.reset();
+          } catch (err) {
+            console.error(err);
+            resultDiv.textContent = "Failed: Your message could not be sent.";
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
