@@ -5,25 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Contact Form</title>
     <style>
-      /* Basic reset and typography */
+      /* Prevent scrollbars inside the iframe */
+      html, body {
+        height: 100%;
+        overflow: hidden !important;      /* no vertical or horizontal scroll */
+        background: #fff !important;
+      }
       body {
-        margin: 0;
-        padding: 20px;
+        margin: 0 !important;
+        padding: 0 !important;
         font-family: system-ui, -apple-system, sans-serif;
-        background-color: #f4f4f4;
         color: #333;
+        overscroll-behavior: none;        /* no bounce on mobile */
+        -ms-overflow-style: none;         /* IE/Edge */
+        scrollbar-width: none;            /* Firefox */
       }
-      /* Centered container */
-      .form-container {
-        max-width: 600px;
-        margin: auto;
-        background: #fff;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-      }
+      /* Hide WebKit scrollbars just in case */
+      body::-webkit-scrollbar { display: none; }
+
       h2 {
-        margin-top: 0;
+        margin: 0 0 10px 0;
         font-size: 1.5em;
         text-align: center;
       }
@@ -32,35 +33,7 @@
         margin-top: 15px;
         font-weight: bold;
       }
-      input[type="text"],
-      input[type="email"],
-      textarea {
-        width: 100%;
-        padding: 10px;
-        margin-top: 5px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        box-sizing: border-box;
-      }
-      textarea {
-        resize: vertical;
-        min-height: 100px;
-      }
-      button {
-        display: block;
-        width: 100%;
-        padding: 10px;
-        margin-top: 20px;
-        background-color: #3b82f6;
-        color: #fff;
-        border: none;
-        border-radius: 4px;
-        font-size: 1em;
-        cursor: pointer;
-      }
-      button:hover {
-        background-color: #2563eb;
-      }
+      textarea { resize: vertical; min-height: 100px; }
       #result {
         text-align: center;
         margin-top: 20px;
@@ -68,22 +41,84 @@
         font-weight: bold;
       }
     </style>
-    <!-- Load nostr‑tools v2.10.4 -->
+    <!-- Load nostr-tools v2.10.4 -->
     <script src="https://cdn.jsdelivr.net/npm/nostr-tools@2.10.4/lib/nostr.bundle.min.js"></script>
   </head>
-  <body>
-    <div class="form-container">
-      <h2>Contact Us</h2>
-      <form id="contact-form">
-        <label for="name">Name</label>
-        <input type="text" id="name" placeholder="Your name" required />
-        <label for="email">Email</label>
-        <input type="email" id="email" placeholder="Your email" required />
-        <label for="message">Message</label>
-        <textarea id="message" placeholder="Your message" required></textarea>
-        <button type="submit">Send Message</button>
-      </form>
-      <div id="result"></div>
+  <body style="background:#fff !important;">
+    <!-- Full-screen container (no overflow) -->
+    <div
+      class="form-container"
+      style="
+        width:100% !important;
+        height:100dvh !important;               /* fill viewport without causing scroll */
+        background:#fff !important;
+        border-radius:0 !important;
+        box-shadow:none !important;
+        margin:0 !important;
+        padding:24px !important;
+        box-sizing:border-box !important;       /* include padding in height */
+        display:flex !important;
+        align-items:center !important;
+        justify-content:center !important;
+        overflow:hidden !important;             /* belt & suspenders */
+      "
+    >
+      <div class="form-inner" style="width:100% !important; max-width:640px !important;">
+        <h2>Contact Form</h2>
+        <form id="contact-form">
+          <label for="name">Name</label>
+          <input
+            type="text"
+            id="name"
+            placeholder="Your name"
+            required
+            style="
+              width:100% !important; padding:10px !important; margin-top:5px !important;
+              border:1px solid #000 !important; border-radius:0 !important; box-sizing:border-box !important;
+              background:#fff !important; color:inherit !important; box-shadow:none !important;
+              -webkit-appearance:none !important; appearance:none !important;
+            "
+          />
+          <label for="email">Email</label>
+          <input
+            type="email"
+            id="email"
+            placeholder="Your email"
+            required
+            style="
+              width:100% !important; padding:10px !important; margin-top:5px !important;
+              border:1px solid #000 !important; border-radius:0 !important; box-sizing:border-box !important;
+              background:#fff !important; color:inherit !important; box-shadow:none !important;
+              -webkit-appearance:none !important; appearance:none !important;
+            "
+          />
+          <label for="message">Message</label>
+          <textarea
+            id="message"
+            placeholder="Your message"
+            required
+            style="
+              width:100% !important; padding:10px !important; margin-top:5px !important;
+              border:1px solid #000 !important; border-radius:0 !important; box-sizing:border-box !important;
+              background:#fff !important; color:inherit !important; box-shadow:none !important;
+              -webkit-appearance:none !important; appearance:none !important;
+              min-height:100px !important; resize:vertical !important;
+            "
+          ></textarea>
+          <button
+            type="submit"
+            style="
+              display:block !important; width:100% !important; padding:10px !important; margin-top:20px !important;
+              background:#000 !important; color:#fff !important; border:1px solid #000 !important;
+              border-radius:0 !important; font-size:1em !important; cursor:pointer !important;
+              box-shadow:none !important; text-shadow:none !important;
+            "
+          >
+            Send Message
+          </button>
+        </form>
+        <div id="result"></div>
+      </div>
     </div>
 
     <script>
@@ -105,12 +140,10 @@
         form.addEventListener("submit", async (ev) => {
           ev.preventDefault();
           resultDiv.textContent = "";
-          // Collect form values.
           const name = document.getElementById("name").value.trim();
           const email = document.getElementById("email").value.trim();
           const message = document.getElementById("message").value.trim();
 
-          // Build the Markdown message.
           const content = `
 # Contact Form Submission
 
@@ -121,21 +154,15 @@ ${message}
           `.trim();
 
           try {
-            // Decode the recipient NPUB to get its public key.
             const decoded = window.NostrTools.nip19.decode(recipientNpub);
-            if (decoded.type !== "npub") {
-              throw new Error("Invalid recipient NPUB");
-            }
+            if (decoded.type !== "npub") throw new Error("Invalid recipient NPUB");
             const targetPubHex = decoded.data;
 
-            // Generate an ephemeral key pair.
             const ephemeralPriv = window.NostrTools.generateSecretKey();
-            const ephemeralPubHex = window.NostrTools.getPublicKey(ephemeralPriv);
+            const ciphertext = await window.NostrTools.nip04.encrypt(
+              ephemeralPriv, targetPubHex, content
+            );
 
-            // Encrypt the content using NIP-04.
-            const ciphertext = await window.NostrTools.nip04.encrypt(ephemeralPriv, targetPubHex, content);
-
-            // Build the event template (kind 4 for DMs).
             const now = Math.floor(Date.now() / 1000);
             const eventTemplate = {
               kind: 4,
@@ -144,10 +171,7 @@ ${message}
               content: ciphertext,
             };
 
-            // Finalize the event (this computes the event ID and signature).
             const event = window.NostrTools.finalizeEvent(eventTemplate, ephemeralPriv);
-
-            // Publish the event to the relays.
             await Promise.any(pool.publish(RELAYS, event));
 
             resultDiv.textContent = "Success: Your message has been sent.";
